@@ -1,0 +1,252 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Архив проката</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" />
+    <script src="lib/jquery/dist/jquery.js"></script>
+    <link href="lib/jquery-ui/themes/base/jquery-ui.min.css" rel="stylesheet" />
+    <script src="lib/jquery-ui/jquery-ui.js"></script>
+    <script src="lib/jquery-ui/ui/i18n/datepicker-ru.js"></script>
+</head>
+<body>
+    <h2 style="margin-left:15px; margin-top:15px;">Архив проката</h2>
+    <form name="diskForm">
+        <input type="hidden" name="id" id="id" value="-1" />
+        <table border="0">
+            <tr>
+                <td>
+                    <div style="margin-left:15px; margin-top:15px;">
+                        <label for="employeeFIO">ФИО работника:</label>
+                        <select class="form-control" name="employeeFIO" id="employeeFIO"></select>
+                    </div>
+                    <div style="margin-left:15px; margin-top:15px;">
+                        <label for="clientFIO">ФИО клиента:</label>
+                        <select class="form-control" name="clientFIO" id="clientFIO"></select>
+                    </div>
+                </td>
+                <td>
+                    <div style="margin-left:15px;">
+                        <label for="discName">Название диска:</label>
+                        <select class="form-control" name="discName" id="discName"></select>
+                    </div>
+                    <div style="margin-left:15px; margin-top:15px;">
+                        <label for="dateOfRent">Дата проката:</label>
+                        <input class="form-control" name="dateOfRent" id="dateOfRent" />
+                    </div>
+                </td>
+                <td>
+                    <div style="margin-left:15px;">
+                        <label for="dateOfReturn">Дата возврата:</label>
+                        <input class="form-control" name="dateOfReturn" id="dateOfReturn" />
+                    </div>
+                    <div style="margin-left:15px; margin-top:15px;">
+                        <label for="paymentCheck">Оплачено?:</label>
+                        <select class="form-control" name="paymentCheck" id="paymentCheck">
+                            <option value="1">Да</option>
+                            <option value="0">Нет</option>
+                        </select>
+                    </div>
+                </td>
+                <td>
+                    <div style="margin-left:15px;">
+                        <label for="returnCheck">Возвращено?:</label>
+                        <select class="form-control" name="returnCheck" id="returnCheck">
+                            <option value="1">Да</option>
+                            <option value="0">Нет</option>
+                        </select>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <div style="margin: 15px 0 15px 15px;">
+            <button id="submit" class="btn btn-primary" onclick="SaveData()">Сохранить</button>
+            <a id="reset" class="btn btn-primary" onclick="reset()">Сбросить</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped  col-md-6">
+        <thead><tr><th>Id</th><th>ФИО клиента</th><th>Название диска</th><th>Дата проката</th><th>Дата возврата</th><th>Оплачено?</th><th>Возвращено?</th><th>ФИО работника</th><th></th></tr></thead>
+        <tbody id="data">
+        </tbody>
+    </table>
+    <script>
+        async function GetClientDisks() {
+            $.ajax({
+                url: '/api/clientDisk',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (clientDisks) {
+                    var rows = "";
+                    $.each(clientDisks, function (index, clientDisk) {
+                        rows += row(clientDisk);
+                    })
+                    $("table tbody#data").append(rows);
+                }
+            });
+        }
+        async function GetEmpls() {
+            var listItems = "";
+            $.ajax({
+                url: '/api/clientDisk/empl',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (empls) {
+                    $.each(empls, function (index, empl) {
+                        listItems = listItems + "<option value='" + empl.id + "'>" + empl.fio + "</option>";
+                    });
+                    $("#employeeFIO").html(listItems);
+                }
+            });
+        }
+        async function GetDisks() {
+            var listItems = "";
+            $.ajax({
+                url: '/api/clientDisk/disk',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (disks) {
+                    $.each(disks, function (index, disk) {
+                        listItems = listItems + "<option value='" + disk.id + "'>" + disk.name + "</option>";
+                    });
+                    $("#discName").html(listItems);
+                }
+            });
+        }
+        async function GetClients() {
+            var listItems = "";
+            $.ajax({
+                url: '/api/clientDisk/client',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (clients) {
+                    $.each(clients, function (index, client) {
+                        listItems = listItems + "<option value='" + client.id + "'>" + client.fio + "</option>";
+                    });
+                    $("#clientFIO").html(listItems);
+                }
+            });
+        }
+        function GetClientDisk(id) {
+            $.ajax({
+                url: '/api/clientDisk/' + id,
+                type: 'GET',
+                contentType: "application/json",
+                success: function (clientDisk) {
+                    var form = document.forms["diskForm"];
+                    form.elements["id"].value = clientDisk.id;
+                    form.elements["clientFIO"].selectedIndex = clientDisk.clientId;
+                    form.elements["discName"].selectedIndex = clientDisk.discId;
+                    form.elements["dateOfRent"].value = clientDisk.dateOfRent.substring(0, 10);
+                    form.elements["dateOfReturn"].value = clientDisk.dateOfReturn.substring(0, 10);
+                    form.elements["paymentCheck"].selectedIndex = clientDisk.paymentCheck;
+                    form.elements["returnCheck"].selectedIndex = clientDisk.returnCheck;
+                    form.elements["employeeFIO"].selectedIndex = clientDisk.employeeId;
+                }
+            });
+        }
+        function CreateClientDisk(clientId, discId, dateOfRent, dateOfReturn, paymentCheck, returnCheck, employeeId) {
+            $.ajax({
+                url: "api/clientDisk",
+                contentType: "application/json",
+                method: "POST",
+                data: JSON.stringify({
+                    Id: -1,
+                    clientId: parseInt(clientId, 10),
+                    discId: parseInt(discId, 10),
+                    dateOfRent: dateOfRent,
+                    dateOfReturn: dateOfReturn,
+                    paymentCheck: parseInt(paymentCheck, 10),
+                    returnCheck: parseInt(returnCheck, 10),
+                    employeeId: parseInt(employeeId, 10)
+                }),
+                success: function (clientDisk) {
+                    reset();
+                    $("table tbody#data").append(row(clientDisk));
+                }
+            });
+        }
+        async function EditClientDisk(id, clientId, discId, dateOfRent, dateOfReturn, paymentCheck, returnCheck, employeeId) {
+            $.ajax({
+                url: "api/clientDisk",
+                contentType: "application/json",
+                method: "PUT",
+                data: JSON.stringify({
+                    Id: parseInt(id, 10),
+                    clientId: parseInt(clientId, 10),
+                    discId: parseInt(discId, 10),
+                    dateOfRent: dateOfRent,
+                    dateOfReturn: dateOfReturn,
+                    paymentCheck: parseInt(paymentCheck, 10),
+                    returnCheck: parseInt(returnCheck, 10),
+                    employeeId: parseInt(employeeId, 10)
+                }),
+                success: function (clientDisk) {
+                    reset();
+                    document.querySelector("tr[data-rowid='" + clientDisk.id + "']").replaceWith(row(clientDisk));
+                }
+            });
+        }
+        // Удаление пользователя
+        async function DeleteClientDisk(id) {
+            $.ajax({
+                url: "api/clientDisk/" + id,
+                contentType: "application/json",
+                method: "DELETE",
+                success: function (id) {
+                    $("tr[data-rowid='" + id + "']").remove();
+                }
+            });
+        }
+
+        // сброс формы
+        function reset() {
+            const form = document.forms["diskForm"];
+            form.reset();
+            form.elements["id"].value = -1;
+        }
+        // создание строки для таблицы
+        var row = function (clientDisk) {
+            return "<tr data-rowid='" + clientDisk.id + "'><td>" + clientDisk.id + "</td >" +
+                "<td>" + clientDisk.clientFIO + "</td>" +
+                "<td>" + clientDisk.discName + "</td>" +
+                "<td>" + clientDisk.dateOfRent.substring(0, 10) + "</td>" +
+                "<td>" + clientDisk.dateOfReturn.substring(0, 10) + "</td>" +
+                "<td>" + clientDisk.paymentCheck + "</td>" +
+                "<td>" + clientDisk.returnCheck + "</td>" +
+                "<td>" + clientDisk.employeeFIO + "</td>" +
+                "<td><button onclick='GetClientDisk(" + clientDisk.id + ")'>Изменить</button> | " +
+                "<button onclick='DeleteClientDisk(" + clientDisk.id + ")'>Удалить</button></td></tr>";
+        }
+        // сброс значений формы
+        document.getElementById("reset").click(function (e) {
+            e.preventDefault();
+            reset();
+        })
+
+        // отправка формы
+        function SaveData() {
+            const form = document.forms["diskForm"];
+            const id = form.elements["id"].value;
+            const clientId = $("#clientFIO option:selected").val();
+            const discId = $("#discName option:selected").val();
+            const dateOfRent = form.elements["dateOfRent"].value;
+            const dateOfReturn = form.elements["dateOfReturn"].value;
+            const paymentCheck = $("#paymentCheck option:selected").val();
+            const returnCheck = $("#returnCheck option:selected").val();
+            const employeeId = $("#employeeFIO option:selected").val();
+            if (id == -1)
+                CreateClientDisk(clientId, discId, dateOfRent, dateOfReturn, paymentCheck, returnCheck, employeeId);
+            else
+                EditClientDisk(id, clientId, discId, dateOfRent, dateOfReturn, paymentCheck, returnCheck, employeeId);
+        }
+
+        GetClientDisks();
+        GetEmpls();
+        GetDisks();
+        GetClients();
+
+    </script>
+</body>
+</html>
